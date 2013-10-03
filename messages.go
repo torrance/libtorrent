@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	Choke = iota
+	Choke = uint8(iota)
 	Unchoke
 	Interested
 	Uninterested
@@ -171,7 +171,7 @@ func parseChokeMessage(r io.Reader) (msg *chokeMessage, err error) {
 func (msg *chokeMessage) BinaryDump(w io.Writer) error {
 	mw := monadWriter{w: w}
 	mw.Write(uint32(1))
-	mw.Write(uint8(Choke))
+	mw.Write(Choke)
 	return mw.err
 }
 
@@ -185,7 +185,7 @@ func parseUnchokeMessage(r io.Reader) (msg *unchokeMessage, err error) {
 func (msg *unchokeMessage) BinaryDump(w io.Writer) error {
 	mw := monadWriter{w: w}
 	mw.Write(uint32(1))
-	mw.Write(uint8(Unchoke))
+	mw.Write(Unchoke)
 	return mw.err
 }
 
@@ -199,7 +199,7 @@ func parseInterestedMessage(r io.Reader) (msg *interestedMessage, err error) {
 func (msg *interestedMessage) BinaryDump(w io.Writer) error {
 	mw := monadWriter{w: w}
 	mw.Write(uint32(1))
-	mw.Write(uint8(Interested))
+	mw.Write(Interested)
 	return mw.err
 }
 
@@ -217,7 +217,7 @@ func parseHaveMessage(r io.Reader) (msg *haveMessage, err error) {
 func (msg *haveMessage) BinaryDump(w io.Writer) error {
 	mw := monadWriter{w: w}
 	mw.Write(uint32(5))
-	mw.Write(uint8(Have))
+	mw.Write(Have)
 	mw.Write(msg.pieceIndex)
 	return mw.err
 }
@@ -236,7 +236,7 @@ func (msg *bitfieldMessage) BinaryDump(w io.Writer) error {
 	length := uint32(msg.bitf.ByteLength() + 1)
 	mw := monadWriter{w: w}
 	mw.Write(length)
-	mw.Write(uint8(Bitfield))
+	mw.Write(Bitfield)
 	mw.Write(msg.bitf.Bytes())
 	return mw.err
 }
@@ -262,8 +262,8 @@ func parseRequestMessage(r io.Reader) (msg *requestMessage, err error) {
 
 func (msg requestMessage) BinaryDump(w io.Writer) (err error) {
 	mw := &monadWriter{w: w}
-	mw.Write(uint32(13))     // Length: status + 12 byte payload
-	mw.Write(uint8(Request)) // Message id
+	mw.Write(uint32(13)) // Length: status + 12 byte payload
+	mw.Write(Request)    // Message id
 	mw.Write(msg.pieceIndex)
 	mw.Write(msg.blockOffset)
 	mw.Write(msg.blockLength)
@@ -292,7 +292,7 @@ func (msg *pieceMessage) BinaryDump(w io.Writer) error {
 	length := uint32(len(msg.data) + 9)
 	mw := monadWriter{w: w}
 	mw.Write(length)
-	mw.Write(uint8(Piece))
+	mw.Write(Piece)
 	mw.Write(msg.pieceIndex)
 	mw.Write(msg.blockOffset)
 	mw.Write(msg.data)
