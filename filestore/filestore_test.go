@@ -122,6 +122,13 @@ func TestNewTFile(t *testing.T) {
 	if tfile.path != filepath.Join("dir1", "dir2", "file.txt") {
 		t.Error("TFile.filename not correctly set. Actual value: ", tfile.path)
 	}
+	fi, err := os.Stat(filepath.Join(tmpDir, "dir1", "dir2", "file.txt"))
+	if err != nil {
+		t.Fatal("Failed to stat file: ", err)
+	}
+	if fi.Size() != 1234 {
+		t.Error("File not 1234bytes, actual value: ", fi.Size())
+	}
 }
 
 func TestGetBlockWithRealFile(t *testing.T) {
