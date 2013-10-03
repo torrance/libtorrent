@@ -109,3 +109,9 @@ func (p *peer) SetBitfield(bitf *bitfield.Bitfield) {
 	p.bitf = bitf
 	p.mutex.Unlock()
 }
+
+func (p *peer) HasPiece(index int) {
+	p.mutex.Lock()
+	p.bitf.SetTrue(index)
+	p.mutex.Unlock()
+}

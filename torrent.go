@@ -133,9 +133,17 @@ func (tor *Torrent) Start() {
 				peer.SetPeerInterested(true)
 			//case *uninterestedMessage:
 			//	logger.Debug("Peer %s has said it is uninterested", peer.name)
-			//case *haveMessage:
+			case *haveMessage:
+				pieceIndex := int(msg.pieceIndex)
+				logger.Debug("Peer %s has piece %d", peer.name, pieceIndex)
+				if pieceIndex >= tor.meta.pieceCount {
+					logger.Debug("Peer %s sent an out of range have message")
+					// TODO: Shutdown client
+				}
+				peer.HasPiece(pieceIndex)
+				// TODO: Update swarmTally
 			case *bitfieldMessage:
-				logger.Debug("Peer %s has send us its bitfield", peer.name)
+				logger.Debug("Peer %s has sent us its bitfield", peer.name)
 				// Raw parsed bitfield has no actual length. Let's try to set it.
 				if err := msg.bitf.SetLength(tor.meta.pieceCount); err != nil {
 					logger.Error(err.Error())
