@@ -138,8 +138,8 @@ func TestGetBlockWithRealFile(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	testFile, _ := os.Create(tmpDir + string(os.PathSeparator) + "test.txt")
-	originalFile, _ := os.Open(".." + string(os.PathSeparator) + "testData" + string(os.PathSeparator) + "test.txt")
+	testFile, _ := os.Create(filepath.Join(tmpDir, "test.txt"))
+	originalFile, _ := os.Open(filepath.Join("..", "testData", "test.txt"))
 	io.Copy(testFile, originalFile)
 
 	tfile, err := NewTorrentFile(tmpDir, "test.txt", 36880)
