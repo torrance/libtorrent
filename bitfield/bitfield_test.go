@@ -1,4 +1,4 @@
-package libtorrent
+package bitfield
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestBitfieldSetTrue(t *testing.T) {
-	bf := newBitfield(14)
+	bf := NewBitfield(14)
 	bf.SetTrue(0)
 	bf.SetTrue(7)
 	bf.SetTrue(9)
@@ -16,7 +16,7 @@ func TestBitfieldSetTrue(t *testing.T) {
 }
 
 func TestBitfieldGet(t *testing.T) {
-	bf := newBitfield(14)
+	bf := NewBitfield(14)
 	bf.SetTrue(0)
 	bf.SetTrue(7)
 	bf.SetTrue(9)

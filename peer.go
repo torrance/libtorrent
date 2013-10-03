@@ -1,6 +1,7 @@
 package libtorrent
 
 import (
+	"github.com/torrance/libtorrent/bitfield"
 	"io"
 	"sync"
 	//"testing/iotest"
@@ -16,7 +17,7 @@ type peer struct {
 	peerChoking    bool
 	peerInterested bool
 	mutex          sync.RWMutex
-	bitf           *bitfield
+	bitf           *bitfield.Bitfield
 }
 
 type peerDouble struct {
@@ -103,7 +104,7 @@ func (p *peer) SetPeerInterested(b bool) {
 	p.mutex.Unlock()
 }
 
-func (p *peer) SetBitfield(bitf *bitfield) {
+func (p *peer) SetBitfield(bitf *bitfield.Bitfield) {
 	p.mutex.Lock()
 	p.bitf = bitf
 	p.mutex.Unlock()

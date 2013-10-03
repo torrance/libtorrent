@@ -1,4 +1,4 @@
-package libtorrent
+package bitfield
 
 import (
 	"errors"
@@ -6,28 +6,32 @@ import (
 	"io/ioutil"
 )
 
-type bitfield struct {
+type Bitfield struct {
 	length int
-	field  []uint8
+	field  []byte
 }
 
-func newBitfield(length int) (bf *bitfield) {
-	bf = &bitfield{
+func NewBitfield(length int) (bf *Bitfield) {
+	bf = &Bitfield{
 		length: length,
 		field:  make([]byte, bitfieldLength(length)),
 	}
 	return
 }
 
-func parseBitfield(r io.Reader) (bf *bitfield, err error) {
+func ParseBitfield(r io.Reader) (bf *Bitfield, err error) {
 	field, err := ioutil.ReadAll(r)
-	bf = &bitfield{
+	bf = &Bitfield{
 		field: field,
 	}
 	return
 }
 
-func (bf *bitfield) SetLength(length int) error {
+func (bf *Bitfield) Length() int {
+	return bf.length
+}
+
+func (bf *Bitfield) SetLength(length int) error {
 	if length > len(bf.field)*8 {
 		return errors.New("Attempted to set bitfield length larger than underlying bitfield")
 	}
@@ -35,7 +39,7 @@ func (bf *bitfield) SetLength(length int) error {
 	return nil
 }
 
-func (bf *bitfield) SetTrue(index int) (err error) {
+func (bf *Bitfield) SetTrue(index int) (err error) {
 	if (bf.length > 0 && index >= bf.length) || (bf.length == 0 && index >= len(bf.field)*8) {
 		err = errors.New("Bitfield error: Index out of range")
 	}
@@ -43,12 +47,20 @@ func (bf *bitfield) SetTrue(index int) (err error) {
 	return
 }
 
-func (bf *bitfield) Get(index int) bool {
+func (bf *Bitfield) Get(index int) bool {
 	if (bf.length > 0 && index >= bf.length) || (bf.length == 0 && index >= len(bf.field)*8) {
 		return false
 	}
 
 	return bf.field[index>>3]&(1<<(7-uint(index)&7)) != 0
+}
+
+func (bf *Bitfield) Bytes() []byte {
+	return bf.field
+}
+
+func (bf *Bitfield) ByteLength() int {
+	return len(bf.field)
 }
 
 func bitfieldLength(i int) (length int) {

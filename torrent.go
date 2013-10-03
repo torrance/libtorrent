@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/op/go-logging"
+	"github.com/torrance/libtorrent/bitfield"
 	"github.com/torrance/libtorrent/tracker"
 	"math/rand"
 	"net"
@@ -17,7 +18,7 @@ type Torrent struct {
 	meta             *Metainfo
 	fileStore        *fileStore
 	config           *Config
-	bitf             *bitfield
+	bitf             *bitfield.Bitfield
 	swarm            []*peer
 	incomingPeer     chan *peer
 	incomingPeerAddr chan string

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/torrance/libtorrent/bitfield"
 	"io"
 	"io/ioutil"
 )
@@ -202,22 +203,21 @@ func (msg *interestedMessage) BinaryDump(w io.Writer) error {
 }
 
 type bitfieldMessage struct {
-	bitf *bitfield
+	bitf *bitfield.Bitfield
 }
 
 func parseBitfieldMessage(r io.Reader) (msg *bitfieldMessage, err error) {
-	var bitf *bitfield
-	bitf, err = parseBitfield(r)
+	bitf, err := bitfield.ParseBitfield(r)
 	msg = &bitfieldMessage{bitf: bitf}
 	return
 }
 
 func (msg *bitfieldMessage) BinaryDump(w io.Writer) error {
-	length := uint32(len(msg.bitf.field) + 1)
+	length := uint32(msg.bitf.ByteLength() + 1)
 	mw := monadWriter{w: w}
 	mw.Write(length)
 	mw.Write(uint8(Bitfield))
-	mw.Write(msg.bitf.field)
+	mw.Write(msg.bitf.Bytes())
 	return mw.err
 }
 

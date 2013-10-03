@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"github.com/torrance/libtorrent/bitfield"
 	"io"
 	"os"
 	"path/filepath"
@@ -31,8 +32,8 @@ func newFileStore(tfiles []torrentStorer, hashes [][]byte, pieceLength int64) (f
 	return
 }
 
-func (fs *fileStore) validate() (bitf *bitfield, err error) {
-	bitf = newBitfield(len(fs.hashes))
+func (fs *fileStore) validate() (bitf *bitfield.Bitfield, err error) {
+	bitf = bitfield.NewBitfield(len(fs.hashes))
 
 	for i, _ := range fs.hashes {
 		var ok bool

@@ -3,14 +3,14 @@ package libtorrent
 import (
 	"errors"
 	"fmt"
+	"github.com/torrance/libtorrent/bitfield"
 )
 
 type swarmTally []int
 
-func (st swarmTally) AddBitfield(bitf *bitfield) (err error) {
-	requiredLength := bitfieldLength(len(st))
-	if requiredLength != len(bitf.field) {
-		err = errors.New(fmt.Sprintf("addBitfield: Supplied bitfield incorrect size, want %d, got %d", requiredLength, len(bitf.field)))
+func (st swarmTally) AddBitfield(bitf *bitfield.Bitfield) (err error) {
+	if len(st) != bitf.Length() {
+		err = errors.New(fmt.Sprintf("addBitfield: Supplied bitfield incorrect size, want %d, got %d", len(st), bitf.Length()))
 		return
 	}
 
@@ -26,10 +26,9 @@ func (st swarmTally) AddBitfield(bitf *bitfield) (err error) {
 	return
 }
 
-func (st swarmTally) RemoveBitfield(bitf *bitfield) (err error) {
-	requiredLength := bitfieldLength(len(st))
-	if requiredLength != len(bitf.field) {
-		err = errors.New(fmt.Sprintf("removeBitfield: Supplied bitfield incorrect size, want %d, got %d", requiredLength, len(bitf.field)))
+func (st swarmTally) RemoveBitfield(bitf *bitfield.Bitfield) (err error) {
+	if len(st) != bitf.Length() {
+		err = errors.New(fmt.Sprintf("removeBitfield: Supplied bitfield incorrect size, want %d, got %d", len(st), bitf.Length()))
 		return
 	}
 
