@@ -1,4 +1,4 @@
-package libtorrent
+package metainfo
 
 import (
 	"bytes"
@@ -10,15 +10,15 @@ import (
 )
 
 type Metainfo struct {
-	name         string
-	announceList []string
-	pieces       [][]byte
-	pieceCount   int
-	pieceLength  int64
-	infoHash     []byte
-	files        []struct {
-		length int64
-		path   string
+	Name         string
+	AnnounceList []string
+	Pieces       [][]byte
+	PieceCount   int
+	PieceLength  int64
+	InfoHash     []byte
+	Files        []struct {
+		Length int64
+		Path   string
 	}
 }
 
@@ -61,45 +61,45 @@ func ParseMetainfo(r io.Reader) (m *Metainfo, err error) {
 
 	// Parse metaDecode into metainfo
 	m = &Metainfo{
-		name:         metaDecode.Info.Name,
-		announceList: []string{metaDecode.Announce},
-		pieceLength:  metaDecode.Info.PieceLength,
-		pieces:       make([][]byte, len(metaDecode.Info.Pieces)/20),
-		pieceCount:   len(metaDecode.Info.Pieces) / 20,
+		Name:         metaDecode.Info.Name,
+		AnnounceList: []string{metaDecode.Announce},
+		PieceLength:  metaDecode.Info.PieceLength,
+		Pieces:       make([][]byte, len(metaDecode.Info.Pieces)/20),
+		PieceCount:   len(metaDecode.Info.Pieces) / 20,
 	}
 
 	// Append other announce lists
 	for _, list := range metaDecode.List {
-		m.announceList = append(m.announceList, list[0])
+		m.AnnounceList = append(m.AnnounceList, list[0])
 	}
 
 	// Pieces is a single string of concatenated 20-byte SHA1 hash values for all pieces in the torrent
 	// Cycle through and create an slice of hashes
 	for i := 0; i < len(metaDecode.Info.Pieces)/20; i++ {
-		m.pieces[i] = metaDecode.Info.Pieces[i*20 : i*20+20]
+		m.Pieces[i] = metaDecode.Info.Pieces[i*20 : i*20+20]
 	}
 
 	// Single files and multiple files are stored differently. We normalise these into
 	// a single description
 	type file struct {
-		length int64
-		path   string
+		Length int64
+		Path   string
 	}
 	if len(metaDecode.Info.Files) == 0 && metaDecode.Info.Length != 0 {
 		// Just one file
-		m.files = append(m.files, file{length: metaDecode.Info.Length, path: metaDecode.Info.Name})
+		m.Files = append(m.Files, file{Length: metaDecode.Info.Length, Path: metaDecode.Info.Name})
 	} else {
 		// Multiple files
 		for _, f := range metaDecode.Info.Files {
 			path := filepath.Join(append([]string{metaDecode.Info.Name}, f.Path...)...)
-			m.files = append(m.files, file{length: f.Length, path: path})
+			m.Files = append(m.Files, file{Length: f.Length, Path: path})
 		}
 	}
 
 	// Create infohash
 	h := sha1.New()
 	h.Write(metaDecode.RawInfo)
-	m.infoHash = h.Sum(nil)
+	m.InfoHash = h.Sum(nil)
 
 	return
 }

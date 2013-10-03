@@ -6,6 +6,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/torrance/libtorrent/bitfield"
 	"github.com/torrance/libtorrent/filestore"
+	"github.com/torrance/libtorrent/metainfo"
 	"github.com/torrance/libtorrent/tracker"
 	"math/rand"
 	"net"
@@ -23,7 +24,7 @@ var PeerId = []byte(fmt.Sprintf("libt-%15d", rand.Int63()))[0:20]
 var logger = logging.MustGetLogger("libtorrent")
 
 type Torrent struct {
-	meta             *Metainfo
+	meta             *metainfo.Metainfo
 	fileStore        *filestore.FileStore
 	config           *Config
 	bitf             *bitfield.Bitfield
@@ -37,7 +38,7 @@ type Torrent struct {
 	stateLock        sync.Mutex
 }
 
-func NewTorrent(m *Metainfo, config *Config) (tor *Torrent, err error) {
+func NewTorrent(m *metainfo.Metainfo, config *Config) (tor *Torrent, err error) {
 	tor = &Torrent{
 		config:           config,
 		meta:             m,
@@ -50,16 +51,16 @@ func NewTorrent(m *Metainfo, config *Config) (tor *Torrent, err error) {
 	// Extract file information to create a slice of torrentStorers
 	tfiles := make([]filestore.TorrentStorer, 0)
 	var tfile filestore.TorrentStorer
-	for _, file := range tor.meta.files {
-		if tfile, err = filestore.NewTorrentFile(tor.config.RootDirectory, file.path, file.length); err != nil {
-			logger.Error("Failed to create file %s: %s", file.path, err)
+	for _, file := range tor.meta.Files {
+		if tfile, err = filestore.NewTorrentFile(tor.config.RootDirectory, file.Path, file.Length); err != nil {
+			logger.Error("Failed to create file %s: %s", file.Path, err)
 			return
 		}
 		tfiles = append(tfiles, tfile)
 	}
 
 	// Now we can create our filestore.
-	if tor.fileStore, err = filestore.NewFileStore(tfiles, tor.meta.pieces, tor.meta.pieceLength); err != nil {
+	if tor.fileStore, err = filestore.NewFileStore(tfiles, tor.meta.Pieces, tor.meta.PieceLength); err != nil {
 		logger.Error("Failed to create filestore: %s", err)
 		return
 	}
@@ -73,7 +74,7 @@ func NewTorrent(m *Metainfo, config *Config) (tor *Torrent, err error) {
 }
 
 func (tor *Torrent) Start() {
-	logger.Info("Torrent starting: %s", tor.meta.name)
+	logger.Info("Torrent starting: %s", tor.meta.Name)
 
 	// Set initial state
 	tor.stateLock.Lock()
@@ -85,7 +86,7 @@ func (tor *Torrent) Start() {
 	tor.stateLock.Unlock()
 
 	// Create trackers
-	for _, tkr := range tor.meta.announceList {
+	for _, tkr := range tor.meta.AnnounceList {
 		tkr, err := tracker.NewTracker(tkr, tor, tor.incomingPeerAddr)
 		if err != nil {
 			logger.Error("Failed to create tracker: %s", err)
@@ -159,7 +160,7 @@ func (tor *Torrent) Start() {
 			case *haveMessage:
 				pieceIndex := int(msg.pieceIndex)
 				logger.Debug("Peer %s has piece %d", peer.name, pieceIndex)
-				if pieceIndex >= tor.meta.pieceCount {
+				if pieceIndex >= tor.meta.PieceCount {
 					logger.Debug("Peer %s sent an out of range have message")
 					// TODO: Shutdown client
 				}
@@ -168,7 +169,7 @@ func (tor *Torrent) Start() {
 			case *bitfieldMessage:
 				logger.Debug("Peer %s has sent us its bitfield", peer.name)
 				// Raw parsed bitfield has no actual length. Let's try to set it.
-				if err := msg.bitf.SetLength(tor.meta.pieceCount); err != nil {
+				if err := msg.bitf.SetLength(tor.meta.PieceCount); err != nil {
 					logger.Error(err.Error())
 					// TODO: Shutdown client
 					break
@@ -207,11 +208,11 @@ func (t *Torrent) String() string {
     Name: '%s'
     Piece length: %d
     Announce lists: %v`
-	return fmt.Sprintf(s, t.meta.infoHash, t.meta.name, t.meta.pieceLength, t.meta.announceList)
+	return fmt.Sprintf(s, t.meta.InfoHash, t.meta.Name, t.meta.PieceLength, t.meta.AnnounceList)
 }
 
 func (t *Torrent) InfoHash() []byte {
-	return t.meta.infoHash
+	return t.meta.InfoHash
 }
 
 func (t *Torrent) State() (state int) {
