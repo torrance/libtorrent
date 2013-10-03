@@ -17,7 +17,7 @@ type Torrent struct {
 	meta             *Metainfo
 	fileStore        *fileStore
 	config           *Config
-	bitf             bitfield
+	bitf             *bitfield
 	swarm            []*peer
 	incomingPeer     chan *peer
 	incomingPeerAddr chan string
@@ -134,6 +134,12 @@ func (tor *Torrent) Start() {
 			//case *haveMessage:
 			case *bitfieldMessage:
 				logger.Debug("Peer %s has send us its bitfield", peer.name)
+				// Raw parsed bitfield has no actual length. Let's try to set it.
+				if err := msg.bitf.SetLength(tor.meta.pieceCount); err != nil {
+					logger.Error(err.Error())
+					// TODO: Shutdown client
+					break
+				}
 				peer.SetBitfield(msg.bitf)
 				tor.swarmTally.AddBitfield(msg.bitf)
 			case *requestMessage:

@@ -202,22 +202,22 @@ func (msg *interestedMessage) BinaryDump(w io.Writer) error {
 }
 
 type bitfieldMessage struct {
-	bitf bitfield
+	bitf *bitfield
 }
 
 func parseBitfieldMessage(r io.Reader) (msg *bitfieldMessage, err error) {
-	var bitf bitfield
-	bitf, err = ioutil.ReadAll(r)
+	var bitf *bitfield
+	bitf, err = parseBitfield(r)
 	msg = &bitfieldMessage{bitf: bitf}
 	return
 }
 
 func (msg *bitfieldMessage) BinaryDump(w io.Writer) error {
-	length := uint32(len(msg.bitf) + 1)
+	length := uint32(len(msg.bitf.field) + 1)
 	mw := monadWriter{w: w}
 	mw.Write(length)
 	mw.Write(uint8(Bitfield))
-	mw.Write(msg.bitf)
+	mw.Write(msg.bitf.field)
 	return mw.err
 }
 

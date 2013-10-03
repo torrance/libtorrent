@@ -180,8 +180,8 @@ func TestGetBlockWithRealFile(t *testing.T) {
 		t.Error("Error calling validate: ", err)
 	}
 
-	if len(bitf) != 1 || bitf[0] != 0xc0 {
-		t.Errorf("Incorrect bitfield, got: %x", bitf)
+	if len(bitf.field) != 1 || bitf.field[0] != 0xc0 {
+		t.Errorf("Incorrect bitfield, got: %x", bitf.field)
 	}
 
 }

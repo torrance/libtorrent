@@ -7,10 +7,10 @@ import (
 
 type swarmTally []int
 
-func (st swarmTally) AddBitfield(bitf bitfield) (err error) {
+func (st swarmTally) AddBitfield(bitf *bitfield) (err error) {
 	requiredLength := bitfieldLength(len(st))
-	if requiredLength != len(bitf) {
-		err = errors.New(fmt.Sprintf("addBitfield: Supplied bitfield incorrect size, want %d, got %d", requiredLength, len(bitf)))
+	if requiredLength != len(bitf.field) {
+		err = errors.New(fmt.Sprintf("addBitfield: Supplied bitfield incorrect size, want %d, got %d", requiredLength, len(bitf.field)))
 		return
 	}
 
@@ -26,10 +26,10 @@ func (st swarmTally) AddBitfield(bitf bitfield) (err error) {
 	return
 }
 
-func (st swarmTally) RemoveBitfield(bitf bitfield) (err error) {
+func (st swarmTally) RemoveBitfield(bitf *bitfield) (err error) {
 	requiredLength := bitfieldLength(len(st))
-	if requiredLength != len(bitf) {
-		err = errors.New(fmt.Sprintf("removeBitfield: Supplied bitfield incorrect size, want %d, got %d", requiredLength, len(bitf)))
+	if requiredLength != len(bitf.field) {
+		err = errors.New(fmt.Sprintf("removeBitfield: Supplied bitfield incorrect size, want %d, got %d", requiredLength, len(bitf.field)))
 		return
 	}
 

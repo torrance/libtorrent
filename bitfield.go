@@ -6,48 +6,49 @@ import (
 	"io/ioutil"
 )
 
-type bitfield []uint8
+type bitfield struct {
+	length int
+	field  []uint8
+}
 
-func newBitfield(length int) (bf bitfield) {
-	bf = make([]byte, bitfieldLength(length))
+func newBitfield(length int) (bf *bitfield) {
+	bf = &bitfield{
+		length: length,
+		field:  make([]byte, bitfieldLength(length)),
+	}
 	return
 }
 
-func parseBitfield(r io.Reader) (bf bitfield, err error) {
-	bf, err = ioutil.ReadAll(r)
+func parseBitfield(r io.Reader) (bf *bitfield, err error) {
+	field, err := ioutil.ReadAll(r)
+	bf = &bitfield{
+		field: field,
+	}
 	return
 }
 
-func (bf bitfield) SetTrue(index int) (err error) {
-	if index >= len(bf)*8 {
+func (bf *bitfield) SetLength(length int) error {
+	if length > len(bf.field)*8 {
+		return errors.New("Attempted to set bitfield length larger than underlying bitfield")
+	}
+	bf.length = length
+	return nil
+}
+
+func (bf *bitfield) SetTrue(index int) (err error) {
+	if (bf.length > 0 && index >= bf.length) || (bf.length == 0 && index >= len(bf.field)*8) {
 		err = errors.New("Bitfield error: Index out of range")
 	}
-
-	byteIndex := index / 8
-	bitOffset := index % 8
-
-	bitMask := 1 << (7 - uint8(bitOffset))
-	bf[byteIndex] |= uint8(bitMask)
+	bf.field[index>>3] |= 1 << (7 - uint(index)&7)
 	return
 }
 
-func (bf bitfield) Get(index int) (b bool) {
-	if index >= len(bf)*8 {
-		b = false
-		return
+func (bf *bitfield) Get(index int) bool {
+	if (bf.length > 0 && index >= bf.length) || (bf.length == 0 && index >= len(bf.field)*8) {
+		return false
 	}
 
-	byteIndex := index / 8
-	bitOffset := index % 8
-
-	bitMask := uint8(1 << (7 - uint8(bitOffset)))
-	b = bitMask == bf[byteIndex]&bitMask
-	return
-}
-
-func (bf bitfield) BinaryDump(w io.Writer) (err error) {
-	_, err = w.Write(bf)
-	return
+	return bf.field[index>>3]&(1<<(7-uint(index)&7)) != 0
 }
 
 func bitfieldLength(i int) (length int) {

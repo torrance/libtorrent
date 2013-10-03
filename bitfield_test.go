@@ -10,8 +10,8 @@ func TestBitfieldSetTrue(t *testing.T) {
 	bf.SetTrue(0)
 	bf.SetTrue(7)
 	bf.SetTrue(9)
-	if !bytes.Equal(bf, []byte{0x81, 0x40}) {
-		t.Errorf("Bitfield SetTrue failed, got: %x", bf)
+	if !bytes.Equal(bf.field, []byte{0x81, 0x40}) {
+		t.Errorf("Bitfield SetTrue failed, got: %x", bf.field)
 	}
 }
 

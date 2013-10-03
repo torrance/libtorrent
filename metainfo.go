@@ -13,6 +13,7 @@ type Metainfo struct {
 	name         string
 	announceList []string
 	pieces       [][]byte
+	pieceCount   int
 	pieceLength  int64
 	infoHash     []byte
 	files        []struct {
@@ -64,6 +65,7 @@ func ParseMetainfo(r io.Reader) (m *Metainfo, err error) {
 		announceList: []string{metaDecode.Announce},
 		pieceLength:  metaDecode.Info.PieceLength,
 		pieces:       make([][]byte, len(metaDecode.Info.Pieces)/20),
+		pieceCount:   len(metaDecode.Info.Pieces) / 20,
 	}
 
 	// Append other announce lists

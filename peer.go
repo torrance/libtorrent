@@ -16,7 +16,7 @@ type peer struct {
 	peerChoking    bool
 	peerInterested bool
 	mutex          sync.RWMutex
-	bitf           bitfield
+	bitf           *bitfield
 }
 
 type peerDouble struct {
@@ -103,7 +103,7 @@ func (p *peer) SetPeerInterested(b bool) {
 	p.mutex.Unlock()
 }
 
-func (p *peer) SetBitfield(bitf bitfield) {
+func (p *peer) SetBitfield(bitf *bitfield) {
 	p.mutex.Lock()
 	p.bitf = bitf
 	p.mutex.Unlock()

@@ -31,7 +31,7 @@ func newFileStore(tfiles []torrentStorer, hashes [][]byte, pieceLength int64) (f
 	return
 }
 
-func (fs *fileStore) validate() (bitf bitfield, err error) {
+func (fs *fileStore) validate() (bitf *bitfield, err error) {
 	bitf = newBitfield(len(fs.hashes))
 
 	for i, _ := range fs.hashes {
