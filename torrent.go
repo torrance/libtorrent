@@ -99,6 +99,10 @@ func (tor *Torrent) Start() {
 	go func() {
 		for {
 			peerAddr := <-tor.incomingPeerAddr
+			// Only attempt to connect to other peers whilst leeching
+			if tor.state != Leeching {
+				continue
+			}
 			go func() {
 				conn, err := net.Dial("tcp", peerAddr)
 				if err != nil {
