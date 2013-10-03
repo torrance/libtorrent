@@ -192,3 +192,88 @@ func TestGetBlockWithRealFile(t *testing.T) {
 	}
 
 }
+
+func TestFileStoreWithMultipleFiles(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "libtorrentTesting")
+	if err != nil {
+		t.Fatal("Could not create temporary directory to run tests: ", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// First create two empty TFiles. We'll test that they're created correctly.
+
+	file1, err := NewTorrentFile(tmpDir, filepath.Join("multitest", "test1.txt"), 24893)
+	if err != nil {
+		t.Fatal("Failed to created file1: ", err)
+	} else {
+		if fi, err := file1.fd.Stat(); err != nil {
+			t.Fatal("Failed to stat file 1: ", err)
+		} else if fi.Size() != 24893 {
+			t.Fatal("File 1 size incorrect, got: ", fi.Size())
+		}
+	}
+
+	file2, err := NewTorrentFile(tmpDir, filepath.Join("multitest", "test2.txt"), 34113)
+	if err != nil {
+		t.Fatal("Failed to created file2: ", err)
+	} else {
+		if fi, err := file2.fd.Stat(); err != nil {
+			t.Fatal("Failed to stat file 2: ", err)
+		} else if fi.Size() != 34113 {
+			t.Fatal("File 2 size incorrect, got: ", fi.Size())
+		}
+	}
+
+	// Now replace these files with the actual files
+	for _, fileName := range []string{"test1.txt", "test2.txt", "test3.txt"} {
+		testFile, err := os.Create(filepath.Join(tmpDir, "multitest", fileName))
+		if err != nil {
+			t.Fatal("Failed to open test file: ", fileName, err)
+		}
+		originalFile, err := os.Open(filepath.Join("..", "testData", "multitest", fileName))
+		if err != nil {
+			t.Fatal("Failed to open original file: ", fileName, err)
+		}
+		_, err = io.Copy(testFile, originalFile)
+		if err != nil {
+			t.Fatal("Failed to copy files: ", fileName, err)
+		}
+	}
+
+	// We add file 3 after having copied across the actual data, to ensure that
+	// it doesn't delete any data.
+	file3, err := NewTorrentFile(tmpDir, filepath.Join("multitest", "test3.txt"), 36880)
+	if err != nil {
+		t.Fatal("Failed to created file3: ", err)
+	} else {
+		if fi, err := file3.fd.Stat(); err != nil {
+			t.Fatal("Failed to stat file 3: ", err)
+		} else if fi.Size() != 36880 {
+			t.Fatal("File 3 size incorrect, got: ", fi.Size())
+		}
+	}
+
+	// Create FileStore object
+	hashes := [][]byte{
+		[]byte{73, 34, 176, 29, 229, 125, 157, 28, 41, 61, 161, 34, 149, 47, 162, 50, 32, 142, 179, 113},
+		[]byte{253, 88, 132, 30, 179, 131, 129, 178, 163, 242, 219, 174, 160, 79, 92, 251, 81, 103, 81, 153},
+		[]byte{103, 128, 108, 125, 224, 90, 210, 85, 56, 27, 112, 170, 148, 114, 155, 39, 132, 132, 67, 148},
+		[]byte{207, 35, 173, 86, 79, 73, 78, 120, 174, 37, 56, 240, 209, 56, 179, 35, 216, 183, 95, 250},
+		[]byte{234, 216, 33, 126, 28, 215, 199, 57, 176, 132, 212, 140, 74, 106, 140, 205, 81, 39, 183, 54},
+		[]byte{81, 45, 79, 164, 142, 254, 170, 73, 121, 139, 104, 80, 249, 172, 251, 139, 232, 73, 69, 143},
+	}
+
+	fs, err := NewFileStore([]TorrentStorer{file3, file2, file1}, hashes, 16384)
+	if err != nil {
+		t.Fatal("Error creating filestore: ", err)
+	}
+
+	bitf, err := fs.Validate()
+	if err != nil {
+		t.Error("Error calling validate: ", err)
+	}
+
+	if bitf.ByteLength() != 1 || bitf.Bytes()[0] != 0xFC {
+		t.Errorf("Incorrect bitfield, got: %x", bitf.Bytes())
+	}
+}
