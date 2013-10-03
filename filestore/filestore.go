@@ -1,4 +1,4 @@
-package libtorrent
+package filestore
 
 import (
 	"bytes"
@@ -11,28 +11,28 @@ import (
 	"path/filepath"
 )
 
-type fileStore struct {
-	tfiles      []torrentStorer
+type FileStore struct {
+	tfiles      []TorrentStorer
 	hashes      [][]byte
 	pieceLength int64
 	totalLength int64
 }
 
-func newFileStore(tfiles []torrentStorer, hashes [][]byte, pieceLength int64) (fs *fileStore, err error) {
-	fs = &fileStore{
+func NewFileStore(tfiles []TorrentStorer, hashes [][]byte, pieceLength int64) (fs *FileStore, err error) {
+	fs = &FileStore{
 		tfiles:      tfiles,
 		hashes:      hashes,
 		pieceLength: pieceLength,
 	}
 
 	for _, tfile := range tfiles {
-		fs.totalLength += tfile.length()
+		fs.totalLength += tfile.Length()
 	}
 
 	return
 }
 
-func (fs *fileStore) validate() (bitf *bitfield.Bitfield, err error) {
+func (fs *FileStore) Validate() (bitf *bitfield.Bitfield, err error) {
 	bitf = bitfield.NewBitfield(len(fs.hashes))
 
 	for i, _ := range fs.hashes {
@@ -47,8 +47,8 @@ func (fs *fileStore) validate() (bitf *bitfield.Bitfield, err error) {
 	return
 }
 
-func (fs *fileStore) validatePiece(index int) (ok bool, err error) {
-	block, err := fs.getBlock(index, 0, fs.getPieceLength(index))
+func (fs *FileStore) validatePiece(index int) (ok bool, err error) {
+	block, err := fs.GetBlock(index, 0, fs.getPieceLength(index))
 	if err != nil {
 		return
 	}
@@ -61,7 +61,7 @@ func (fs *fileStore) validatePiece(index int) (ok bool, err error) {
 	return
 }
 
-func (fs *fileStore) getPieceLength(index int) int64 {
+func (fs *FileStore) getPieceLength(index int) int64 {
 	if index == len(fs.hashes)-1 {
 		return fs.totalLength % fs.pieceLength
 	} else {
@@ -69,7 +69,7 @@ func (fs *fileStore) getPieceLength(index int) int64 {
 	}
 }
 
-func (fs *fileStore) getBlock(pieceIndex int, offset int64, length int64) (block []byte, err error) {
+func (fs *FileStore) GetBlock(pieceIndex int, offset int64, length int64) (block []byte, err error) {
 	if length+offset > fs.getPieceLength(pieceIndex) {
 		err = errors.New("Requested block overran piece length")
 		return
@@ -90,10 +90,10 @@ func (fs *fileStore) getBlock(pieceIndex int, offset int64, length int64) (block
 		} else if err == io.EOF {
 			// We haven't read anything, or only a partial read
 			segment = segment[lengthRead:]
-			if offset-tfile.length() < 0 {
+			if offset-tfile.Length() < 0 {
 				offset = 0
 			} else {
-				offset -= tfile.length()
+				offset -= tfile.Length()
 			}
 		} else if err != nil {
 			// Something else went wrong
@@ -101,26 +101,21 @@ func (fs *fileStore) getBlock(pieceIndex int, offset int64, length int64) (block
 		}
 	}
 
-	if err != nil {
-		logger.Error("Failed to get block %d, %d, %d", pieceIndex, offset, length)
-		logger.Error("Piece length: %d, Total Length: %d, Pieces: %d", fs.pieceLength, fs.totalLength, len(fs.hashes))
-	}
-
 	return
 }
 
-type torrentStorer interface {
+type TorrentStorer interface {
 	io.ReaderAt
-	length() int64
+	Length() int64
 }
 
-type torrentFile struct {
+type TorrentFile struct {
 	lth  int64
 	path string
 	fd   *os.File
 }
 
-func newTorrentFile(rootDirectory string, path string, length int64) (tfile *torrentFile, err error) {
+func NewTorrentFile(rootDirectory string, path string, length int64) (tfile *TorrentFile, err error) {
 	if len(path) == 0 {
 		err = errors.New("Path must have at least 1 component.")
 		return
@@ -163,7 +158,7 @@ func newTorrentFile(rootDirectory string, path string, length int64) (tfile *tor
 		return
 	}
 
-	tfile = &torrentFile{
+	tfile = &TorrentFile{
 		path: path,
 		lth:  length,
 		fd:   fd,
@@ -172,15 +167,15 @@ func newTorrentFile(rootDirectory string, path string, length int64) (tfile *tor
 	return
 }
 
-func (tf *torrentFile) ReadAt(p []byte, off int64) (n int, err error) {
+func (tf *TorrentFile) ReadAt(p []byte, off int64) (n int, err error) {
 	n, err = tf.fd.ReadAt(p, off)
 	return
 }
 
-func (tf *torrentFile) length() int64 {
+func (tf *TorrentFile) Length() int64 {
 	return tf.lth
 }
 
-func (tf *torrentFile) String() string {
-	return fmt.Sprintf("[File: %s Length: %dbytes]", tf.path, tf.length)
+func (tf *TorrentFile) String() string {
+	return fmt.Sprintf("[File: %s Length: %dbytes]", tf.path, tf.lth)
 }

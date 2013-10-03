@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/op/go-logging"
 	"github.com/torrance/libtorrent/bitfield"
+	"github.com/torrance/libtorrent/filestore"
 	"github.com/torrance/libtorrent/tracker"
 	"math/rand"
 	"net"
@@ -16,7 +17,7 @@ var logger = logging.MustGetLogger("libtorrent")
 
 type Torrent struct {
 	meta             *Metainfo
-	fileStore        *fileStore
+	fileStore        *filestore.FileStore
 	config           *Config
 	bitf             *bitfield.Bitfield
 	swarm            []*peer
@@ -37,10 +38,10 @@ func NewTorrent(m *Metainfo, config *Config) (tor *Torrent, err error) {
 	}
 
 	// Extract file information to create a slice of torrentStorers
-	tfiles := make([]torrentStorer, 0)
-	var tfile torrentStorer
+	tfiles := make([]filestore.TorrentStorer, 0)
+	var tfile filestore.TorrentStorer
 	for _, file := range tor.meta.files {
-		if tfile, err = newTorrentFile(tor.config.RootDirectory, file.path, file.length); err != nil {
+		if tfile, err = filestore.NewTorrentFile(tor.config.RootDirectory, file.path, file.length); err != nil {
 			logger.Error("Failed to create file %s: %s", file.path, err)
 			return
 		}
@@ -48,12 +49,12 @@ func NewTorrent(m *Metainfo, config *Config) (tor *Torrent, err error) {
 	}
 
 	// Now we can create our filestore.
-	if tor.fileStore, err = newFileStore(tfiles, tor.meta.pieces, tor.meta.pieceLength); err != nil {
+	if tor.fileStore, err = filestore.NewFileStore(tfiles, tor.meta.pieces, tor.meta.pieceLength); err != nil {
 		logger.Error("Failed to create filestore: %s", err)
 		return
 	}
 
-	if tor.bitf, err = tor.fileStore.validate(); err != nil {
+	if tor.bitf, err = tor.fileStore.Validate(); err != nil {
 		logger.Error("Failed to run validation on new filestore: %s", err)
 		return
 	}
@@ -150,7 +151,7 @@ func (tor *Torrent) Start() {
 					break
 				}
 				logger.Debug("Peer %s has asked for a block (%d, %d, %d), going to fetch block", peer.name, msg.pieceIndex, msg.blockOffset, msg.blockLength)
-				block, err := tor.fileStore.getBlock(int(msg.pieceIndex), int64(msg.blockOffset), int64(msg.blockLength))
+				block, err := tor.fileStore.GetBlock(int(msg.pieceIndex), int64(msg.blockOffset), int64(msg.blockLength))
 				if err != nil {
 					logger.Error(err.Error())
 					break
@@ -175,7 +176,7 @@ func (t *Torrent) String() string {
     Name: '%s'
     Piece length: %d
     Announce lists: %v`
-	return fmt.Sprintf(s, t.meta.infoHash, t.meta.name, t.fileStore.pieceLength, t.meta.announceList)
+	return fmt.Sprintf(s, t.meta.infoHash, t.meta.name, t.meta.pieceLength, t.meta.announceList)
 }
 
 func (t *Torrent) InfoHash() []byte {

@@ -1,4 +1,4 @@
-package libtorrent
+package filestore
 
 import (
 	"bytes"
@@ -15,12 +15,12 @@ func TestGetBlockWithSingleFile(t *testing.T) {
 		reader: bytes.NewReader([]byte{1, 2, 3, 4}),
 	}
 	hashes := [][]byte{[]byte{1}, []byte{2}}
-	fs, err := newFileStore([]torrentStorer{file1}, hashes, 3)
+	fs, err := NewFileStore([]TorrentStorer{file1}, hashes, 3)
 	if err != nil {
 		t.Fatalf("Failed to create filestore: %s", err)
 	}
 
-	block, err := fs.getBlock(0, 1, 2)
+	block, err := fs.GetBlock(0, 1, 2)
 	if err != nil {
 		t.Fatalf("Failed to get block [1]: %s", err)
 	}
@@ -31,7 +31,7 @@ func TestGetBlockWithSingleFile(t *testing.T) {
 
 	pieceLength := fs.getPieceLength(1)
 	t.Logf("Piece length: %d", pieceLength)
-	if block, err = fs.getBlock(1, 0, pieceLength); err != nil {
+	if block, err = fs.GetBlock(1, 0, pieceLength); err != nil {
 		t.Fatalf("Failed to get block [2]: %s", err)
 	}
 
@@ -53,13 +53,13 @@ func TestGetBlockWithMultipleFiles(t *testing.T) {
 
 	b := []byte{1}
 	hashes := [][]byte{b, b, b, b, b}
-	fs, err := newFileStore([]torrentStorer{file1, file2, file3}, hashes, 3)
+	fs, err := NewFileStore([]TorrentStorer{file1, file2, file3}, hashes, 3)
 	if err != nil {
 		t.Fatalf("Failed to create filestore: %s", err)
 	}
 
 	// Test 1: only select from first file
-	block, err := fs.getBlock(0, 1, 2)
+	block, err := fs.GetBlock(0, 1, 2)
 	if err != nil {
 		t.Fatalf("Failed to get block [1]: %s", err)
 	}
@@ -68,7 +68,7 @@ func TestGetBlockWithMultipleFiles(t *testing.T) {
 	}
 
 	// Test 2: select from second file only
-	if block, err = fs.getBlock(1, 1, 2); err != nil {
+	if block, err = fs.GetBlock(1, 1, 2); err != nil {
 		t.Fatalf("Failed to get block [2]: %s", err)
 	}
 	if !bytes.Equal(block, []byte{5, 6}) {
@@ -76,7 +76,7 @@ func TestGetBlockWithMultipleFiles(t *testing.T) {
 	}
 
 	// Test 3: select from piece bridging two files
-	if block, err = fs.getBlock(2, 0, 3); err != nil {
+	if block, err = fs.GetBlock(2, 0, 3); err != nil {
 		t.Fatalf("Failed to get block [3]: %s", err)
 	}
 	if !bytes.Equal(block, []byte{7, 8, 9}) {
@@ -84,7 +84,7 @@ func TestGetBlockWithMultipleFiles(t *testing.T) {
 	}
 
 	// Test 4: select last piece
-	if block, err = fs.getBlock(4, 0, fs.getPieceLength(4)); err != nil {
+	if block, err = fs.GetBlock(4, 0, fs.getPieceLength(4)); err != nil {
 		t.Fatalf("Failed to get block [4]: %s", err)
 	}
 	if !bytes.Equal(block, []byte{13}) {
@@ -100,7 +100,7 @@ func (stor testTorrentStorer) ReadAt(b []byte, off int64) (n int, err error) {
 	return stor.reader.ReadAt(b, off)
 }
 
-func (stor testTorrentStorer) length() int64 {
+func (stor testTorrentStorer) Length() int64 {
 	return int64(stor.reader.Len())
 }
 
@@ -111,13 +111,13 @@ func TestNewTFile(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	tfile, err := newTorrentFile(tmpDir, filepath.Join("dir1", "dir2", "file.txt"), 1234)
+	tfile, err := NewTorrentFile(tmpDir, filepath.Join("dir1", "dir2", "file.txt"), 1234)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if tfile.length() != 1234 {
-		t.Error("TFile.length not correctly set. Actual value: ", tfile.length)
+	if tfile.Length() != 1234 {
+		t.Error("TFile.length not correctly set. Actual value: ", tfile.Length())
 	}
 	if tfile.path != filepath.Join("dir1", "dir2", "file.txt") {
 		t.Error("TFile.filename not correctly set. Actual value: ", tfile.path)
@@ -132,10 +132,10 @@ func TestGetBlockWithRealFile(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	testFile, _ := os.Create(tmpDir + string(os.PathSeparator) + "test.txt")
-	originalFile, _ := os.Open("testData/test.txt")
+	originalFile, _ := os.Open(".." + string(os.PathSeparator) + "testData" + string(os.PathSeparator) + "test.txt")
 	io.Copy(testFile, originalFile)
 
-	tfile, err := newTorrentFile(tmpDir, "test.txt", 36880)
+	tfile, err := NewTorrentFile(tmpDir, "test.txt", 36880)
 	if err != nil {
 		t.Fatal("Could not create tfile: ", err)
 	}
@@ -145,12 +145,12 @@ func TestGetBlockWithRealFile(t *testing.T) {
 		[]byte{199, 10, 10, 118, 99, 244, 176, 96, 247, 53, 217, 230, 10, 42, 50, 233, 147, 116, 217, 141},
 	}
 
-	fs, err := newFileStore([]torrentStorer{tfile}, hashes, 32768)
+	fs, err := NewFileStore([]TorrentStorer{tfile}, hashes, 32768)
 	if err != nil {
 		t.Fatal("Couldn't create fileStore: ", err)
 	}
 
-	block, err := fs.getBlock(0, 5, 5)
+	block, err := fs.GetBlock(0, 5, 5)
 	if err != nil {
 		t.Error("Error calling getBlock: ", err)
 	}
@@ -158,7 +158,7 @@ func TestGetBlockWithRealFile(t *testing.T) {
 		t.Errorf("Loaded incorrect block data [1]: %x", block)
 	}
 
-	block, err = fs.getBlock(1, 5, 5)
+	block, err = fs.GetBlock(1, 5, 5)
 	if err != nil {
 		t.Error("Error calling getBlock: ", err)
 	}
@@ -167,7 +167,7 @@ func TestGetBlockWithRealFile(t *testing.T) {
 	}
 
 	// Test loading final piece
-	block, err = fs.getBlock(1, 0, fs.getPieceLength(1))
+	block, err = fs.GetBlock(1, 0, fs.getPieceLength(1))
 	if err != nil {
 		t.Error("Error calling getBlock: ", err)
 	}
@@ -175,7 +175,7 @@ func TestGetBlockWithRealFile(t *testing.T) {
 		t.Errorf("Loaded incorrect block data [3]: Start: %x End: %x\n", block[:3], block[len(block)-3:])
 	}
 
-	bitf, err := fs.validate()
+	bitf, err := fs.Validate()
 	if err != nil {
 		t.Error("Error calling validate: ", err)
 	}
