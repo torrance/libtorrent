@@ -61,16 +61,25 @@ func ParseMetainfo(r io.Reader) (m *Metainfo, err error) {
 
 	// Parse metaDecode into metainfo
 	m = &Metainfo{
-		Name:         metaDecode.Info.Name,
-		AnnounceList: []string{metaDecode.Announce},
-		PieceLength:  metaDecode.Info.PieceLength,
-		Pieces:       make([][]byte, len(metaDecode.Info.Pieces)/20),
-		PieceCount:   len(metaDecode.Info.Pieces) / 20,
+		Name:        metaDecode.Info.Name,
+		PieceLength: metaDecode.Info.PieceLength,
+		Pieces:      make([][]byte, len(metaDecode.Info.Pieces)/20),
+		PieceCount:  len(metaDecode.Info.Pieces) / 20,
 	}
 
 	// Append other announce lists
-	for _, list := range metaDecode.List {
-		m.AnnounceList = append(m.AnnounceList, list[0])
+	// First pass it through a map so we can ensure we have unique entries
+	lists := make(map[string]bool)
+	lists[metaDecode.Announce] = true // Primary announce list
+	for _, tier := range metaDecode.List {
+		for _, list := range tier {
+			lists[list] = true
+		}
+	}
+	// Now unravel map into list
+	m.AnnounceList = make([]string, 0, len(lists))
+	for list, _ := range lists {
+		m.AnnounceList = append(m.AnnounceList, list)
 	}
 
 	// Pieces is a single string of concatenated 20-byte SHA1 hash values for all pieces in the torrent
