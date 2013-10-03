@@ -8,6 +8,7 @@ import (
 
 type Bitfield struct {
 	length int
+	sum    int
 	field  []byte
 }
 
@@ -39,11 +40,16 @@ func (bf *Bitfield) SetLength(length int) error {
 	return nil
 }
 
+func (bf *Bitfield) SumTrue() int {
+	return bf.sum
+}
+
 func (bf *Bitfield) SetTrue(index int) (err error) {
 	if (bf.length > 0 && index >= bf.length) || (bf.length == 0 && index >= len(bf.field)*8) {
 		err = errors.New("Bitfield error: Index out of range")
 	}
 	bf.field[index>>3] |= 1 << (7 - uint(index)&7)
+	bf.sum++
 	return
 }
 

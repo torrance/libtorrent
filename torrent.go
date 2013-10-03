@@ -9,7 +9,14 @@ import (
 	"github.com/torrance/libtorrent/tracker"
 	"math/rand"
 	"net"
+	"sync"
 	"time"
+)
+
+const (
+	Stopped = iota
+	Leeching
+	Seeding
 )
 
 var PeerId = []byte(fmt.Sprintf("libt-%15d", rand.Int63()))[0:20]
@@ -26,6 +33,8 @@ type Torrent struct {
 	swarmTally       swarmTally
 	readChan         chan peerDouble
 	trackers         []*tracker.Tracker
+	state            int
+	stateLock        sync.Mutex
 }
 
 func NewTorrent(m *Metainfo, config *Config) (tor *Torrent, err error) {
@@ -35,6 +44,7 @@ func NewTorrent(m *Metainfo, config *Config) (tor *Torrent, err error) {
 		incomingPeer:     make(chan *peer, 100),
 		incomingPeerAddr: make(chan string, 100),
 		readChan:         make(chan peerDouble, 50),
+		state:            Stopped,
 	}
 
 	// Extract file information to create a slice of torrentStorers
@@ -64,6 +74,15 @@ func NewTorrent(m *Metainfo, config *Config) (tor *Torrent, err error) {
 
 func (tor *Torrent) Start() {
 	logger.Info("Torrent starting: %s", tor.meta.name)
+
+	// Set initial state
+	tor.stateLock.Lock()
+	if tor.bitf.SumTrue() == tor.bitf.Length() {
+		tor.state = Seeding
+	} else {
+		tor.state = Leeching
+	}
+	tor.stateLock.Unlock()
 
 	// Create trackers
 	for _, tkr := range tor.meta.announceList {
@@ -189,6 +208,13 @@ func (t *Torrent) String() string {
 
 func (t *Torrent) InfoHash() []byte {
 	return t.meta.infoHash
+}
+
+func (t *Torrent) State() (state int) {
+	t.stateLock.Lock()
+	state = t.state
+	t.stateLock.Unlock()
+	return
 }
 
 func (t *Torrent) AddPeer(conn net.Conn, hs *handshake) {
