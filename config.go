@@ -2,5 +2,5 @@ package libtorrent
 
 type Config struct {
 	RootDirectory string
-	Port          int16
+	Port          uint16
 }

@@ -6,12 +6,12 @@ import (
 )
 
 type Listener struct {
-	port     int16
+	port     uint16
 	torrents map[string]*Torrent
 	listener net.Listener
 }
 
-func NewListener(port int16) (l *Listener) {
+func NewListener(port uint16) (l *Listener) {
 	l = &Listener{
 		port:     port,
 		torrents: make(map[string]*Torrent),

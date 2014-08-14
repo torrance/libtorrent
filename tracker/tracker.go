@@ -31,7 +31,7 @@ type TorrentStatter interface {
 	Downloaded() int64
 	Uploaded() int64
 	Left() int64
-	Port() int16
+	Port() uint16
 	PeerId() []byte
 }
 
@@ -232,7 +232,7 @@ type announceRequest struct {
 	ipAddress     int32
 	key           int32
 	numWant       int32
-	port          int16
+	port          uint16
 }
 
 func (a *announceRequest) BinaryDump(w io.Writer) (err error) {
