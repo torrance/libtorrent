@@ -267,7 +267,7 @@ func (t *Torrent) Left() int64 {
 	return 0
 }
 
-func (t *Torrent) Port() int16 {
+func (t *Torrent) Port() uint16 {
 	return t.config.Port
 }
 
